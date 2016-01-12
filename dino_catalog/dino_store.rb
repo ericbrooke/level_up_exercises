@@ -17,37 +17,40 @@
 # table_print
 
 require 'csv'
-require "awesome_print"
-# dinosaurs = CSV.read('dinodex.csv', headers: true, header_converters: :symbol)
-# # CSV.foreach('dinodex.csv', headers:true) do |dinosaur|
-# #   puts dinosaur.inspect
-# # end
-# dinosaurs.each do |dinosaur|
-#   p dinosaur
-# end
-# CSV::Converters[:blank_to_nil] = lambda do |field|
-#   field && field.empty? ? nil : field
-# end
-#
-f = 'dinodex.csv'
-# d = CSV.new(f, headers: true, header_converters: :symbol, converters: [:all, :blank_to_nil])
-# d.to_a
-# puts d
+require 'table_print'
 
-# csv_data = CSV.read f
-# headers = csv_data.shift.map {|i| i.to_s }
-# string_data = csv_data.map {|row| row.map {|cell| cell.to_s } }
-# array_of_hashes = string_data.map {|row| Hash[*headers.zip(row).flatten] }
-#
-# puts array_of_hashes
-
+# def convert_csv_array_of_hashes(file_location)
+#   csv = CSV.read(file_location, headers: true, header_converters: :symbol, :converters => [:all])
+#   arrayed = csv.to_a
+#   array_and_hashed = arrayed.map{|row| row.to_h}
+# end
 
 def csv_to_array(file_location)
-    csv = CSV.parse(File.open(file_location, 'r') { |f| f.read })
-    fields = csv.shift
-    fields = fields.map {|f| f.downcase.gsub(" ", "_")}
-    csv.collect { |record| Hash[*fields.zip(record).flatten] }
+  csv = CSV.parse(File.open(file_location, 'r') { |f| f.read })
+  titles = csv.shift # get the titles
+  titles = titles.map { |f| f.downcase.to_sym}
+  csv.collect { |record| Hash[*titles.zip(record).flatten(1)] } # add title to each field
 end
 
-test = csv_to_array('dinodex.csv')
-puts test
+def find(store, keyword)
+  store.find { |x| x.fetch(:name) == keyword }
+end
+
+def select(store, category, keyword)
+  store.find_all { |x| x.fetch(category.to_sym) == keyword }
+end
+
+def print_all(store)
+  tp store
+end
+
+def sort(store, category, keyword)
+  # %w{apple pear fig}.sort_by { |word| word.length}
+  store.sort_by { |category.to_sym| }
+end
+
+store = csv_to_array('dinodex.csv')
+print_all(store)
+result = find(store, 'Giganotosaurus')
+results = select(store, 'diet', 'Carnivore')
+print_all(results)
