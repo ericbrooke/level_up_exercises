@@ -15,52 +15,13 @@
 # export json
 
 require 'csv'
-require 'table_print'
+
+require_relative 'dinosaur'
+require_relative 'import'
+require_relative 'ui'
+require_relative 'search'
 
 class Dinodex
-  attr_accessor :columns
-
-  def initialize(filename)
-    @store = csv_to_array(filename)
-    @columns
-  end
-
-  def csv_to_array(file_location)
-    csv = CSV.parse(File.open(file_location, 'r') { |f| f.read })
-    titles = csv.shift
-    titles = titles.map { |f| f.downcase.to_sym }
-    @columns = titles
-    csv.collect { |record| Hash[*titles.zip(record).flatten(1)] }
-  end
-
-  def find(keyword)
-    result = @store.find { |x| x.fetch(:name) == keyword }
-    print_one(result)
-  end
-
-  def select(category, keyword)
-    results = @store.find_all { |x| x.fetch(category.to_sym) == keyword }
-    tp results
-  end
-
-  def print_all
-    tp @store
-  end
-
-  def sort
-    @store.sort
-  end
-
-  def print_one(result)
-    puts "-------------------------"
-    tp [result], name: { width: 100 }
-    tp [result], period: { width: 100 }
-    tp [result], continent: { width: 100 }
-    tp [result], diet: { width: 100 }
-    tp [result], weight_in_lbs: { width: 100 }
-    tp [result], walking: { width: 100 }
-    tp [result], description: { width: 100 }
-  end
 end
 
 d = Dinodex.new('dinodex.csv')
