@@ -9,40 +9,24 @@ class BlagPost
   DISALLOWED_CATEGORIES = [:selfposts, :gossip, :bildungsromane]
 
   def initialize(args)
-    args = args.inject({}) do |hash, (key, value)|
-      hash[key.to_sym] = value
-      hash
-    end
+    args = args.with_indifferent_access
 
-    if args[:author] != '' && args[:author_url] != ''
-      @author = Author.new(args[:author], args[:author_url])
-    end
-
-    if args[:categories]
-      @categories = args[:categories].reject do |category|
-        DISALLOWED_CATEGORIES.include? category
-      end
-    else
-      @categories = []
-    end
+    extract_author(args)
+    create_catagories_list(args)
 
     @comments = args[:comments] || []
-    @body = args[:body].gsub(/\s{2,}|\n/, ' ').gsub(/^\s+/, '')
-    @publish_date = (args[:publish_date] && Date.parse(args[:publish_date])) || Date.today
+    @body = args[:body].squish!
+    @publish_date = create_date(args)
   end
 
   def to_s
-    [ category_list, byline, abstract, commenters ].join("\n")
+    [category_list, byline, abstract, commenters].join("\n")
   end
 
   private
 
   def byline
-    if author.nil?
-      ""
-    else
-      "By #{author.name}, at #{author.url}"
-    end
+    "By #{author.name}, at #{author.url}" if author.present?
   end
 
   def category_list
@@ -54,49 +38,42 @@ class BlagPost
       label = "Categories"
     end
 
-    if categories.length > 1
-      last_category = categories.pop
-      suffix = " and #{as_title(last_category)}"
-    else
-      suffix = ""
-    end
-
-    label + ": " + categories.map { |cat| as_title(cat) }.join(", ") + suffix
-  end
-
-  def as_title(string)
-    string = String(string)
-    words = string.gsub('_', ' ').split(' ')
-
-    words.map!(&:capitalize)
-    words.join(' ')
+    label + ": " + categories.to_sentence.humanize
   end
 
   def commenters
     return '' unless comments_allowed?
-    return '' unless comments.length > 0
+    return '' unless comments.present?
 
-    ordinal = case comments.length % 10
-      when 1 then "st"
-      when 2 then "nd"
-      when 3 then "rd"
-      else "th"
-    end
-    "You will be the #{comments.length}#{ordinal} commenter"
+    ordinal = comments.count.ordinalize
+
+    "You will be the #{ordinal} commenter"
   end
 
   def comments_allowed?
-    publish_date + (365 * 3) > Date.today
+    publish_date.years_since(3) > Date.today
   end
 
   def abstract
-    if body.length < 200
-      body
-    else
-      body[0..200] + "..."
+    body.truncate(204)
+  end
+
+  def extract_author(args)
+    return unless args[:author].present? && args[:author_url].present?
+    @author = Author.new(args[:author], args[:author_url])
+  end
+
+  def create_catagories_list(args)
+    return @categories = [] unless args[:categories].present?
+    @categories = args[:categories].reject do |category|
+      DISALLOWED_CATEGORIES.include? category
     end
   end
 
+  def create_date(args)
+    return Date.today unless args[:publish_date].present?
+    Date.parse(args[:publish_date])
+  end
 end
 
 blag = BlagPost.new("author"        => "Foo Bar",
