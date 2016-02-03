@@ -9,14 +9,9 @@ class BlagPost
   DISALLOWED_CATEGORIES = [:selfposts, :gossip, :bildungsromane]
 
   def initialize(args)
-    args = args.inject({}) do |hash, (key, value)|
-      hash[key.to_sym] = value
-      hash
-    end
+    args = args.with_indifferent_access
 
-    if args[:author] != '' && args[:author_url] != ''
-      @author = Author.new(args[:author], args[:author_url])
-    end
+    extract_author(args)
 
     if args[:categories]
       @categories = args[:categories].reject do |category|
@@ -27,22 +22,18 @@ class BlagPost
     end
 
     @comments = args[:comments] || []
-    @body = args[:body].gsub(/\s{2,}|\n/, ' ').gsub(/^\s+/, '')
+    @body = args[:body].squish!
     @publish_date = (args[:publish_date] && Date.parse(args[:publish_date])) || Date.today
   end
 
   def to_s
-    [ category_list, byline, abstract, commenters ].join("\n")
+    [category_list, byline, abstract, commenters].join("\n")
   end
 
   private
 
   def byline
-    if author.nil?
-      ""
-    else
-      "By #{author.name}, at #{author.url}"
-    end
+    "By #{author.name}, at #{author.url}" if author.present?
   end
 
   def category_list
@@ -54,14 +45,7 @@ class BlagPost
       label = "Categories"
     end
 
-    if categories.length > 1
-      last_category = categories.pop
-      suffix = " and #{as_title(last_category)}"
-    else
-      suffix = ""
-    end
-
-    label + ": " + categories.map { |cat| as_title(cat) }.join(", ") + suffix
+    label + ": " + categories.to_sentence.humanize
   end
 
   def as_title(string)
@@ -97,6 +81,10 @@ class BlagPost
     end
   end
 
+  def extract_author(args)
+    return unless args[:author].present? && args[:author_url].present?
+    @author = Author.new(args[:author], args[:author_url])
+  end
 end
 
 blag = BlagPost.new("author"        => "Foo Bar",
