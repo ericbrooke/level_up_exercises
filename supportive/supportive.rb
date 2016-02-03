@@ -48,37 +48,21 @@ class BlagPost
     label + ": " + categories.to_sentence.humanize
   end
 
-  def as_title(string)
-    string = String(string)
-    words = string.gsub('_', ' ').split(' ')
-
-    words.map!(&:capitalize)
-    words.join(' ')
-  end
-
   def commenters
     return '' unless comments_allowed?
-    return '' unless comments.length > 0
+    return '' unless comments.present?
 
-    ordinal = case comments.length % 10
-      when 1 then "st"
-      when 2 then "nd"
-      when 3 then "rd"
-      else "th"
-    end
-    "You will be the #{comments.length}#{ordinal} commenter"
+    ordinal = comments.count.ordinalize
+
+    "You will be the #{ordinal} commenter"
   end
 
   def comments_allowed?
-    publish_date + (365 * 3) > Date.today
+    publish_date.years_since(3) > Date.today
   end
 
   def abstract
-    if body.length < 200
-      body
-    else
-      body[0..200] + "..."
-    end
+    body.truncate(204)
   end
 
   def extract_author(args)
