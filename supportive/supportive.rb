@@ -12,18 +12,11 @@ class BlagPost
     args = args.with_indifferent_access
 
     extract_author(args)
-
-    if args[:categories]
-      @categories = args[:categories].reject do |category|
-        DISALLOWED_CATEGORIES.include? category
-      end
-    else
-      @categories = []
-    end
+    create_catagories_list(args)
 
     @comments = args[:comments] || []
     @body = args[:body].squish!
-    @publish_date = (args[:publish_date] && Date.parse(args[:publish_date])) || Date.today
+    @publish_date = create_date(args)
   end
 
   def to_s
@@ -68,6 +61,18 @@ class BlagPost
   def extract_author(args)
     return unless args[:author].present? && args[:author_url].present?
     @author = Author.new(args[:author], args[:author_url])
+  end
+
+  def create_catagories_list(args)
+    return @categories = [] unless args[:categories].present?
+    @categories = args[:categories].reject do |category|
+      DISALLOWED_CATEGORIES.include? category
+    end
+  end
+
+  def create_date(args)
+    return Date.today unless args[:publish_date].present?
+    Date.parse(args[:publish_date])
   end
 end
 
